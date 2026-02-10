@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:fresher_demo_1/data/repositories/auth_repository.dart';
 import 'package:get/get.dart';
 
 class LoginController extends GetxController {
   final formKey = GlobalKey<FormState>();
+
+  final AuthRepository _authRepository = Get.find<AuthRepository>();
 
   final FocusNode taxFocus = FocusNode();
   final FocusNode usernameFocus = FocusNode();
@@ -22,12 +25,23 @@ class LoginController extends GetxController {
     errorMessage.value = '';
 
     try {
+      await _authRepository.syncFromFirebase();
       final tax = taxController.text.trim();
       final user = usernameController.text.trim();
       final pass = passwordController.text.trim();
+      final account = await _authRepository.login(tax, user, pass);
+
+      if (account != null) {
+        // Đăng nhập thành công (Mục 4 - Bước 4)
+        // Ở đây  lưu thông tin fullName để hiển thị ở trang chủ
+        return true;
+      } else {
+        errorMessage.value = "Thông tin đăng nhập không hợp lệ";
+        return false;
+      }
     } catch (e) {
-      print('Lỗi login : $e');
-      errorMessage.value = "Thông tin đăng nhập không hợp lệ";
+      debugPrint('Lỗi login : $e');
+      errorMessage.value = "Đã có lỗi xảy ra. Vui lòng thử lại.";
     } finally {
       isLoading.value = false;
     }
@@ -41,7 +55,7 @@ class LoginController extends GetxController {
       final success = await login();
 
       if (success) {
-        debugPrint('Đăng nhập thành công');
+        Get.offAllNamed('/home');
       } else {
         Get.defaultDialog(
           title: "Lỗi",
